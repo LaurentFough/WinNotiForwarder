@@ -101,11 +101,15 @@ async def test_listener():
         elif access_status == UserNotificationListenerAccessStatus.UNSPECIFIED:
             print("✗ ACCESS UNSPECIFIED - App not recognized by Windows")
             print()
-            print("The application doesn't have proper Windows identity.")
+            print("This is expected for a plain 'python main.py' process, not a transient bug.")
+            print("UserNotificationListener requires the restricted 'userNotificationListener'")
+            print("capability, which Windows only grants to apps with package identity")
+            print("(MSIX / a signed sparse package). The system-wide python.exe has no such")
+            print("identity, so there is no Settings toggle to flip - it will stay UNSPECIFIED")
+            print("no matter how many times you retry.")
             print()
-            print("Solution:")
-            print("1. Run as Administrator: powershell -ExecutionPolicy Bypass -File register_app.ps1")
-            print("2. Then manually enable in Settings > Privacy > Notifications")
+            print("See the README 'Grant Notification Access' section for details and")
+            print("known workarounds (packaging the app with a sparse package + MSIX identity).")
 
         else:
             print(f"✗ Unknown access status: {access_status}")

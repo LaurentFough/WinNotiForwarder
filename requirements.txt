@@ -1,8 +1,9 @@
 # Windows Runtime packages for notification listening
-winrt-runtime>=2.0.0
-winrt-Windows.UI.Notifications>=2.0.0
-winrt-Windows.Foundation>=2.0.0
-winrt-Windows.Foundation.Collections>=2.0.0
+winrt-runtime>=3.2.1
+winrt-Windows.UI.Notifications>=3.2.1
+winrt-Windows.UI.Notifications.Management>=3.2.1
+winrt-Windows.Foundation>=3.2.1
+winrt-Windows.Foundation.Collections>=3.2.1
 
 # HTTP client for provider APIs (Pushbullet, Ntfy)
 requests>=2.31.0

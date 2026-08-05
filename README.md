@@ -20,7 +20,7 @@ Supports **Firebase Cloud Messaging (FCM)**, **Pushbullet**, and **Ntfy** - use 
 ## Prerequisites
 
 - **Windows 10/11** (required for WinRT APIs)
-- **Python 3.8+** installed
+- **Python 3.9 - 3.14** installed (the `winrt` packages this project depends on ship wheels for this range; other versions will fail to install)
 - **At least one notification provider:**
   - **Firebase project** (for FCM) - [Setup Guide](https://console.firebase.google.com/)
   - **Pushbullet account** (for Pushbullet) - [Get API Token](https://www.pushbullet.com/#settings/account)
@@ -96,18 +96,25 @@ WHITELIST_APPS=Outlook,Teams,Slack
 
 ### 3. Grant Notification Access
 
-**Important:** Python needs permission to access Windows notifications.
+**Important:** Windows needs to trust this app before it can read other apps' notifications.
 
 1. Run the diagnostic script first:
    ```bash
    python tools/diagnose.py
    ```
 
-2. If access is **DENIED** or **UNSPECIFIED**:
+2. If access is **DENIED**:
    - Open **Settings** → **Privacy & Security** → **Notifications**
    - Scroll down and find **"Python"** or **"python.exe"**
    - Toggle notification access **ON**
    - Run `python tools/diagnose.py` again to verify
+
+3. If access is **UNSPECIFIED** and stays that way (no entry ever appears under Settings → Notifications, and re-running `request_access_async()` doesn't show a prompt):
+   - This is a known limitation, not a transient bug. `UserNotificationListener` requires the restricted `userNotificationListener` capability, which Windows only grants to apps with **package identity** (MSIX/sparse package). A plain `python main.py` process run from the system-wide `python.exe` has no package identity, so Windows has no app to attach a permission decision to — there's nothing to toggle.
+   - Workarounds that are known to work for this class of problem, none of which this repo currently automates:
+     - Package the app as an MSIX or give it identity via a signed "sparse package" (`Add-AppxPackage -ExternalLocation`) with the `userNotificationListener` capability declared, and a matching side-by-side manifest embedded in a dedicated built `.exe` (e.g. via PyInstaller) rather than the shared `python.exe`.
+     - Alternatively, run the app under a build/launcher that already has package identity.
+   - If you get this working, a PR with a `register_app.ps1`/packaging script would be very welcome.
 
 ### 4. Run the Application
 
@@ -259,10 +266,8 @@ Run diagnostics:
 python tools/diagnose.py
 ```
 
-Then manually grant permission:
-1. Settings → Privacy & Security → Notifications
-2. Find **Python** in the list
-3. Toggle ON
+- **DENIED:** Go to Settings → Privacy & Security → Notifications, find **Python** in the list, and toggle it ON.
+- **UNSPECIFIED (and it never changes):** See [Grant Notification Access](#3-grant-notification-access) above — this status is expected for a plain `python.exe` process and requires packaging the app with an MSIX/sparse-package identity to resolve. It is not something you can fix from Settings alone.
 
 ### Module not found errors
 
