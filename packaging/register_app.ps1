@@ -35,16 +35,27 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$DistPath = (Join-Path $PSScriptRoot "..\dist"),
+    [string]$DistPath,
     [switch]$Unregister
 )
 
 $ErrorActionPreference = "Stop"
 
+# $PSScriptRoot can be empty here under Windows PowerShell 5.1 when the
+# script is invoked with a forward-slash path (e.g. -File packaging/register_app.ps1),
+# and it can't be relied on inside a param() default anyway since those are
+# evaluated before the script body runs. Resolve it defensively instead.
+$ScriptRoot = $PSScriptRoot
+if (-not $ScriptRoot) { $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path }
+if (-not $ScriptRoot) { $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition }
+if (-not $ScriptRoot) { throw "Could not determine this script's directory. Run it as: powershell -ExecutionPolicy Bypass -File <full path to>\register_app.ps1" }
+
+if (-not $DistPath) { $DistPath = Join-Path $ScriptRoot "..\dist" }
+
 $PackageName = "WinNotiForwarder"
 $CertSubject = "CN=WinNotiForwarder"
-$ManifestDir = $PSScriptRoot
-$OutDir      = Join-Path $PSScriptRoot "out"
+$ManifestDir = $ScriptRoot
+$OutDir      = Join-Path $ScriptRoot "out"
 $MsixPath    = Join-Path $OutDir "$PackageName.msix"
 $PfxPath     = Join-Path $OutDir "$PackageName.pfx"
 $CerPath     = Join-Path $OutDir "$PackageName.cer"
