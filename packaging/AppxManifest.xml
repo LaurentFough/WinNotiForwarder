@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sparse package ("packaging with external location") manifest.
+
+  This grants package identity to the unpackaged NotificationForwarder.exe
+  build so Windows will treat it as a real app for restricted-capability
+  APIs like UserNotificationListener - a plain python.exe process has no
+  package identity and can never move past UserNotificationListenerAccessStatus.UNSPECIFIED.
+
+  This manifest does not change runtime behavior; it is registered via
+  Add-AppxPackage -ExternalLocation pointing at the folder containing the
+  built exe. See register_app.ps1 and packaging/README.md.
+-->
+<Package IgnorableNamespaces="uap uap3 uap10 rescap"
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+
+  <Identity Name="WinNotiForwarder" Publisher="CN=WinNotiForwarder" Version="1.0.0.0" ProcessorArchitecture="neutral" />
+
+  <Properties>
+    <DisplayName>Windows Notification Forwarder</DisplayName>
+    <PublisherDisplayName>Windows Notification Forwarder</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
+  </Properties>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+    <uap3:Capability Name="userNotificationListener" />
+  </Capabilities>
+
+  <Applications>
+    <Application Id="NotificationForwarder" Executable="NotificationForwarder.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+      <uap:VisualElements
+        AppListEntry="none"
+        DisplayName="Windows Notification Forwarder"
+        Description="Forwards Windows notifications to FCM/Pushbullet/Ntfy"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+</Package>

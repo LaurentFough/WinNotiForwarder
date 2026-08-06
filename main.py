@@ -162,10 +162,41 @@ class NotificationForwarder:
         self.logger.info("Shutdown complete")
 
 
+async def run_diagnose():
+    """
+    Check notification-listener access status using this exact executable.
+
+    Must be run via the same built exe that has package identity registered
+    (see packaging/README.md) - running `python main.py --diagnose` from a
+    plain python.exe will report the same UNSPECIFIED/hang behavior as
+    tools/diagnose.py, since it has no package identity either.
+    """
+    print("=" * 60)
+    print("Notification Access Diagnosis")
+    print("=" * 60)
+    print(f"Running from: {sys.executable if getattr(sys, 'frozen', False) else __file__}")
+    print()
+
+    listener = WindowsNotificationListener(callback=lambda n: None)
+    print("Requesting notification access (up to 30s)...")
+    granted = await listener.request_access()
+
+    if granted:
+        print("✓ ACCESS GRANTED - the app can read Windows notifications.")
+    else:
+        print("✗ Access not granted. Check the log output above for the reason.")
+
+    input("\nPress Enter to exit...")
+
+
 async def main():
     """Application entry point"""
     # Setup logging
     setup_logging()
+
+    if "--diagnose" in sys.argv:
+        await run_diagnose()
+        return
 
     # Get the directory where the script/exe is located
     if getattr(sys, 'frozen', False):

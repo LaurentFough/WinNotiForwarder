@@ -71,8 +71,26 @@ async def test_listener():
         print(f"✓ Got listener: {listener}")
         print()
 
-        print("Requesting notification access...")
-        access_status = await listener.request_access_async()
+        print("Requesting notification access (up to 30s - this script has no package")
+        print("identity, so this call may hang instead of returning; see below if it does)...")
+        try:
+            access_status = await asyncio.wait_for(listener.request_access_async(), timeout=30.0)
+        except asyncio.TimeoutError:
+            print()
+            print("✗ TIMED OUT waiting for a response.")
+            print()
+            print("This script runs as a plain python.exe process with no Windows package")
+            print("identity, so the OS permission broker has nothing to attach a decision to")
+            print("and the call can hang indefinitely instead of returning UNSPECIFIED.")
+            print()
+            print("This is not fixable from here or from Settings. Build and register the")
+            print("packaged exe instead - see packaging/README.md - then run:")
+            print("  NotificationForwarder.exe --diagnose")
+            print("from the registered dist folder to check access using an exe that actually")
+            print("has package identity.")
+            print()
+            input("Press Enter to exit...")
+            sys.exit(1)
 
         print(f"Access status: {access_status}")
 
@@ -108,8 +126,8 @@ async def test_listener():
             print("identity, so there is no Settings toggle to flip - it will stay UNSPECIFIED")
             print("no matter how many times you retry.")
             print()
-            print("See the README 'Grant Notification Access' section for details and")
-            print("known workarounds (packaging the app with a sparse package + MSIX identity).")
+            print("Fix: build and register the packaged exe - see packaging/README.md - then")
+            print("run 'NotificationForwarder.exe --diagnose' from the registered dist folder.")
 
         else:
             print(f"✗ Unknown access status: {access_status}")

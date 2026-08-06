@@ -2,6 +2,9 @@
 .env
 service-account.json
 
+# Packaging artifacts (built exe, signing cert/keys, packed msix)
+packaging/out/
+
 # Python
 __pycache__/
 *.py[cod]

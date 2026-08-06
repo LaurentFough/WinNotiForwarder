@@ -27,16 +27,34 @@ class WindowsNotificationListener:
         self.seen_notification_ids = set()  # Track processed notifications
         self.poll_interval = 0.5  # Poll every 0.5 seconds
 
-    async def request_access(self) -> bool:
+    async def request_access(self, timeout: float = 30.0) -> bool:
         """
         Request permission to access notifications
+
+        Args:
+            timeout: Seconds to wait for the OS permission broker before
+                     giving up. Without package identity (see packaging/),
+                     this call can hang indefinitely instead of returning
+                     UNSPECIFIED, so we bound it explicitly.
 
         Returns:
             True if permission granted, False otherwise
         """
         try:
             self.listener = UserNotificationListener.current
-            access_status = await self.listener.request_access_async()
+
+            try:
+                access_status = await asyncio.wait_for(
+                    self.listener.request_access_async(), timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                self.logger.error(
+                    f"Timed out after {timeout:.0f}s waiting for notification access. "
+                    "This almost always means the running process has no Windows package "
+                    "identity (a plain python.exe/unpackaged exe cannot be granted the "
+                    "restricted userNotificationListener capability). See packaging/README.md."
+                )
+                return False
 
             if access_status == UserNotificationListenerAccessStatus.ALLOWED:
                 self.logger.info("Notification listener access granted")

@@ -111,12 +111,9 @@ WHITELIST_APPS=Outlook,Teams,Slack
    - Toggle notification access **ON**
    - Run `python tools/diagnose.py` again to verify
 
-3. If access is **UNSPECIFIED** and stays that way (no entry ever appears under Settings → Notifications, and re-running `request_access_async()` doesn't show a prompt):
-   - This is a known limitation, not a transient bug. `UserNotificationListener` requires the restricted `userNotificationListener` capability, which Windows only grants to apps with **package identity** (MSIX/sparse package). A plain `python main.py` process run from the system-wide `python.exe` has no package identity, so Windows has no app to attach a permission decision to — there's nothing to toggle.
-   - Workarounds that are known to work for this class of problem, none of which this repo currently automates:
-     - Package the app as an MSIX or give it identity via a signed "sparse package" (`Add-AppxPackage -ExternalLocation`) with the `userNotificationListener` capability declared, and a matching side-by-side manifest embedded in a dedicated built `.exe` (e.g. via PyInstaller) rather than the shared `python.exe`.
-     - Alternatively, run the app under a build/launcher that already has package identity.
-   - If you get this working, a PR with a `register_app.ps1`/packaging script would be very welcome.
+3. If access is **UNSPECIFIED** and stays that way (no entry ever appears under Settings → Notifications, and `diagnose.py` either reports UNSPECIFIED forever or times out after 30s waiting on the access request):
+   - This is expected, not a transient bug. `UserNotificationListener` requires the restricted `userNotificationListener` capability, which Windows only grants to apps with **package identity** (MSIX/sparse package). A plain `python main.py` process run from the system-wide `python.exe` has no package identity, so Windows has no app to attach a permission decision to — there's nothing to toggle in Settings.
+   - **Fix:** build the app into its own exe and register it with a sparse-package identity. This repo automates it — see **[packaging/README.md](packaging/README.md)** for the full step-by-step (build with PyInstaller, run `packaging/register_app.ps1`, then verify with `NotificationForwarder.exe --diagnose`).
 
 ### 4. Run the Application
 
@@ -270,7 +267,7 @@ python tools/diagnose.py
 ```
 
 - **DENIED:** Go to Settings → Privacy & Security → Notifications, find **Python** in the list, and toggle it ON.
-- **UNSPECIFIED (and it never changes):** See [Grant Notification Access](#3-grant-notification-access) above — this status is expected for a plain `python.exe` process and requires packaging the app with an MSIX/sparse-package identity to resolve. It is not something you can fix from Settings alone.
+- **UNSPECIFIED (or the request times out/hangs):** Not fixable from Settings — see [Grant Notification Access](#3-grant-notification-access) above and [packaging/README.md](packaging/README.md) to build and register a properly identified exe.
 
 ### Module not found errors
 
@@ -321,9 +318,16 @@ windows-notification-forwarder/
 │   ├── __init__.py              # Package exports
 │   └── fcm_v1_helper.py         # FCM v1 HTTP API implementation
 │
-└── tools/                        # Diagnostic and testing tools
-    ├── diagnose.py              # System diagnostic tool
-    └── test_notification.ps1    # Test notification generator
+├── tools/                         # Diagnostic and testing tools
+│   ├── diagnose.py              # System diagnostic tool
+│   └── test_notification.ps1    # Test notification generator
+│
+└── packaging/                     # MSIX identity packaging (see packaging/README.md)
+    ├── README.md                # Why/how to grant real notification access
+    ├── notification_forwarder.spec  # PyInstaller build spec
+    ├── AppxManifest.xml         # Sparse package identity manifest
+    ├── app.manifest              # Side-by-side manifest embedded in the built exe
+    └── register_app.ps1         # Build/sign/register (or -Unregister) the identity
 ```
 
 ## How It Works
