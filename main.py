@@ -85,7 +85,8 @@ class NotificationForwarder:
                     server_url=self.config.ntfy_server_url,
                     topic=self.config.ntfy_topic,
                     username=self.config.ntfy_username if self.config.ntfy_username else None,
-                    password=self.config.ntfy_password if self.config.ntfy_password else None
+                    password=self.config.ntfy_password if self.config.ntfy_password else None,
+                    verify_ssl=self.config.ntfy_verify_ssl
                 )
                 self.provider_manager.add_provider(ntfy)
 

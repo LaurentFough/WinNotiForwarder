@@ -4,6 +4,7 @@ Send notifications via ntfy.sh (or self-hosted ntfy server)
 """
 
 import requests
+import urllib3
 from typing import Optional
 from .base_provider import BaseProvider
 
@@ -15,7 +16,8 @@ class NtfyProvider(BaseProvider):
         server_url: str = "https://ntfy.sh",
         topic: str = "windows_notifications",
         username: Optional[str] = None,
-        password: Optional[str] = None
+        password: Optional[str] = None,
+        verify_ssl: bool = True
     ):
         """
         Initialize Ntfy provider
@@ -25,11 +27,14 @@ class NtfyProvider(BaseProvider):
             topic: Ntfy topic to publish to
             username: Optional username for basic auth
             password: Optional password for basic auth
+            verify_ssl: Verify the server's TLS certificate (disable only for
+                        self-hosted servers using a self-signed certificate)
         """
         super().__init__("Ntfy")
         self.server_url = server_url.rstrip('/')
         self.topic = topic
         self.endpoint = f"{self.server_url}/{self.topic}"
+        self.verify_ssl = verify_ssl
 
         # Setup basic auth if credentials provided
         self.auth = None
@@ -42,6 +47,14 @@ class NtfyProvider(BaseProvider):
         if not self.server_url or not self.topic:
             self.logger.error("Invalid Ntfy configuration")
             return False
+
+        if not self.verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            self.logger.warning(
+                "⚠️  TLS certificate verification is DISABLED for Ntfy "
+                "(NTFY_VERIFY_SSL=false). Only use this for a self-hosted "
+                "server with a self-signed certificate that you trust."
+            )
 
         self.enabled = True
         self.logger.info(f"✅ Ntfy initialized (server: {self.server_url}, topic: {self.topic})")
@@ -63,6 +76,7 @@ class NtfyProvider(BaseProvider):
                     "Tags": "white_check_mark"
                 },
                 auth=self.auth,
+                verify=self.verify_ssl,
                 timeout=10
             )
 
@@ -106,6 +120,7 @@ class NtfyProvider(BaseProvider):
                 data=body or "(No content)",
                 headers=headers,
                 auth=self.auth,
+                verify=self.verify_ssl,
                 timeout=10
             )
 

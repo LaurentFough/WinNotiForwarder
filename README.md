@@ -82,6 +82,8 @@ NTFY_PASSWORD=your_password
 
 **Self-Hosted with Auth:** If your ntfy server requires authentication, set `NTFY_USERNAME` and `NTFY_PASSWORD`.
 
+**Self-Signed Certificate:** If your self-hosted ntfy server uses a self-signed TLS certificate, set `NTFY_VERIFY_SSL=false`. Only do this for a server you trust — it disables certificate validation, so use a real certificate (e.g. via Let's Encrypt or your own trusted CA) whenever possible instead.
+
 **Note:** You can enable multiple providers simultaneously! Notifications will be sent to all enabled providers.
 
 #### App Filtering (Optional)
@@ -160,6 +162,7 @@ NTFY_SERVER_URL=https://ntfy.sh
 NTFY_TOPIC=windows_notifications
 NTFY_USERNAME=              # Optional: for self-hosted servers with auth
 NTFY_PASSWORD=              # Optional: for self-hosted servers with auth
+NTFY_VERIFY_SSL=true        # Set to false to allow self-signed certs (self-hosted only)
 
 # ==============================================================================
 # APP FILTERING (Optional)

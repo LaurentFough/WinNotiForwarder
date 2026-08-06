@@ -36,6 +36,7 @@ class Config:
         self.ntfy_topic: str = os.getenv("NTFY_TOPIC", "windows_notifications")
         self.ntfy_username: str = os.getenv("NTFY_USERNAME", "")
         self.ntfy_password: str = os.getenv("NTFY_PASSWORD", "")
+        self.ntfy_verify_ssl: bool = os.getenv("NTFY_VERIFY_SSL", "true").lower() in ('true', '1', 'yes', 'on')
 
         # ======================
         # App Filtering
