@@ -4,20 +4,45 @@ Forwards Windows notifications to multiple channels (FCM, Pushbullet, Ntfy)
 """
 import sys
 
+
+def _chk(msg):
+    """TEMPORARY startup checkpoint for hang diagnosis - remove once found.
+    Writes to both a plain debug file and stdout, always flushed, so it's
+    visible even if the process gets killed before the console is read."""
+    try:
+        with open("startup_debug.log", "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
+    try:
+        print(msg, flush=True)
+    except Exception:
+        pass
+
+
+_chk("[0] process started")
+
 # Must run before anything can import pythoncom (e.g. a PyInstaller Windows
 # runtime hook, even though this project never imports pywin32 directly):
 # pythoncom defaults to initializing COM as STA on import, and a WinRT async
 # call awaited from an STA thread with no Windows message pump running never
 # completes - it just hangs forever. Forcing MTA (0) here avoids that.
 sys.coinit_flags = 0
+_chk("[1] set coinit_flags")
 
 import asyncio
+_chk("[2] imported asyncio")
 import logging
+_chk("[3] imported logging")
 from pathlib import Path
+_chk("[4] imported pathlib")
 
 from config import Config
+_chk("[5] imported config")
 from notification_listener import WindowsNotificationListener
+_chk("[6] imported notification_listener")
 from providers import ProviderManager, FCMProvider, PushbulletProvider, NtfyProvider
+_chk("[7] imported providers")
 
 
 def setup_logging():
@@ -182,15 +207,19 @@ async def run_diagnose():
     plain python.exe will report the same UNSPECIFIED/hang behavior as
     tools/diagnose.py, since it has no package identity either.
     """
+    _chk("[10] entered run_diagnose")
     print("=" * 60)
     print("Notification Access Diagnosis")
     print("=" * 60)
     print(f"Running from: {sys.executable if getattr(sys, 'frozen', False) else __file__}")
     print()
 
+    _chk("[11] constructing WindowsNotificationListener")
     listener = WindowsNotificationListener(callback=lambda n: None)
+    _chk("[12] constructed, about to request_access")
     print("Requesting notification access (up to 30s)...")
     granted = await listener.request_access()
+    _chk("[13] request_access returned")
 
     if granted:
         print("✓ ACCESS GRANTED - the app can read Windows notifications.")
@@ -202,8 +231,10 @@ async def run_diagnose():
 
 async def main():
     """Application entry point"""
+    _chk("[8] entered main()")
     # Setup logging
     setup_logging()
+    _chk("[9] setup_logging done")
 
     if "--diagnose" in sys.argv:
         await run_diagnose()
