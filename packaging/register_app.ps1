@@ -146,8 +146,13 @@ New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 Write-Host "Locating Windows SDK signing tools..."
 $MakeAppx = Find-SdkTool "makeappx.exe"
 $SignTool = Find-SdkTool "signtool.exe"
+Write-Host "  makeappx.exe: $(if ($MakeAppx) { $MakeAppx } else { 'NOT FOUND' })"
+Write-Host "  signtool.exe: $(if ($SignTool) { $SignTool } else { 'NOT FOUND' })"
 if (-not $MakeAppx -or -not $SignTool) {
-    throw "makeappx.exe / signtool.exe not found. Install the Windows 10/11 SDK (the 'Windows SDK Signing Tools for Desktop Apps' component is enough) from https://developer.microsoft.com/windows/downloads/windows-sdk/ and re-run."
+    $missing = @()
+    if (-not $MakeAppx) { $missing += "makeappx.exe" }
+    if (-not $SignTool) { $missing += "signtool.exe" }
+    throw "$($missing -join ' and ') not found. If you installed Microsoft.Windows.SDK.BuildTools and only signtool.exe showed up, that package may not include makeappx.exe - try Option C (the SDK installer with the 'Windows SDK Signing Tools for Desktop Apps' component) instead: https://developer.microsoft.com/windows/downloads/windows-sdk/ - then re-run this script."
 }
 Write-Host "  MakeAppx: $MakeAppx"
 Write-Host "  SignTool: $SignTool"
