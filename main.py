@@ -36,7 +36,10 @@ def setup_logging():
     # Ensure stdout uses UTF-8 on Windows
     if sys.platform == 'win32':
         import io
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stdout = io.TextIOWrapper(
+            sys.stdout.buffer, encoding='utf-8', errors='replace',
+            line_buffering=True, write_through=True
+        )
 
 
 class NotificationForwarder:
