@@ -56,7 +56,7 @@ if not check_loopback_connectivity():
     sys.exit(1)
 
 print("=" * 60)
-print("Windows Notification Forwarder - Diagnostics")
+print("WinNotiForwarder - Diagnostics")
 print("=" * 60)
 print()
 
@@ -134,7 +134,7 @@ async def test_listener():
             print()
             print("This is not fixable from here or from Settings. Build and register the")
             print("packaged exe instead - see packaging/README.md - then run:")
-            print("  NotificationForwarder.exe --diagnose")
+            print("  WinNotiForwarder.exe --diagnose")
             print("from the registered dist folder to check access using an exe that actually")
             print("has package identity.")
             print()
@@ -176,7 +176,7 @@ async def test_listener():
             print("no matter how many times you retry.")
             print()
             print("Fix: build and register the packaged exe - see packaging/README.md - then")
-            print("run 'NotificationForwarder.exe --diagnose' from the registered dist folder.")
+            print("run 'WinNotiForwarder.exe --diagnose' from the registered dist folder.")
 
         else:
             print(f"✗ Unknown access status: {access_status}")

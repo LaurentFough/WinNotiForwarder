@@ -90,10 +90,10 @@ steps.
 
    ```powershell
    pip install pyinstaller
-   pyinstaller packaging/notification_forwarder.spec
+   pyinstaller packaging/WinNotiForwarder.spec
    ```
 
-   This produces `dist/NotificationForwarder.exe`.
+   This produces `dist/WinNotiForwarder.exe`.
 
 2. Register the identity package against that `dist` folder, from an
    **elevated (Administrator) PowerShell window**:
@@ -111,19 +111,19 @@ steps.
    rather than partway through.
 
 3. Copy your `.env` (and `service-account.json` if using FCM) into
-   `dist/`, next to `NotificationForwarder.exe`.
+   `dist/`, next to `WinNotiForwarder.exe`.
 
 4. Verify access using the built exe - not `python`, which still has no
    identity even after step 2:
 
    ```powershell
-   dist\NotificationForwarder.exe --diagnose
+   dist\WinNotiForwarder.exe --diagnose
    ```
 
    This should now show a real consent prompt and, once you accept it,
    report `ACCESS GRANTED`.
 
-5. Run it normally: `dist\NotificationForwarder.exe`
+5. Run it normally: `dist\WinNotiForwarder.exe`
 
 **Important:** the registered identity is tied to the exact folder path
 you passed as `-DistPath` (default `dist/`). If you move or rename that
@@ -142,7 +142,7 @@ powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1 -Unregister
 | `0x800B0109` / `CERT_E_UNTRUSTEDROOT` | Not running elevated - `Add-AppxPackage`'s chain validation checks `LocalMachine\Root`, not the per-user stores, and the whole command needs elevation here | Re-run from an elevated (Administrator) PowerShell window - `register_app.ps1` now checks for this up front and refuses to proceed otherwise |
 | `0x80073CF9` | This exact package version is already registered | Re-run `register_app.ps1` - it removes the previous registration first, but if it was registered some other way, run `Get-AppxPackage WinNotiForwarder \| Remove-AppxPackage` manually first |
 | Access still `UNSPECIFIED` after registering | `app.manifest`'s `publisher`/`packageName`/`applicationId` don't match `AppxManifest.xml`'s `Identity`/`Application` values, or you ran the exe from somewhere other than the registered `-DistPath` | Re-check the two manifests match exactly; confirm you're running the exe from the exact registered folder |
-| `NotificationForwarder.exe` hangs with **zero output at all**, not even the diagnostic banner | Unrelated to package identity - a proxy/VPN/traffic-interception tool is capturing loopback (`127.0.0.1`) connections, which `asyncio` needs on Windows just to start up. Confirmed cause in one case: **Proxifier** with **"Handle Direct Connections"** enabled | The app has a built-in self-test for this that fails fast with a clear message instead of hanging - if you still see a silent hang, disable that Proxifier setting (or add an explicit direct/bypass exception for `127.0.0.1`/`localhost` in whatever similar tool you use) |
+| `WinNotiForwarder.exe` hangs with **zero output at all**, not even the diagnostic banner | Unrelated to package identity - a proxy/VPN/traffic-interception tool is capturing loopback (`127.0.0.1`) connections, which `asyncio` needs on Windows just to start up. Confirmed cause in one case: **Proxifier** with **"Handle Direct Connections"** enabled | The app has a built-in self-test for this that fails fast with a clear message instead of hanging - if you still see a silent hang, disable that Proxifier setting (or add an explicit direct/bypass exception for `127.0.0.1`/`localhost` in whatever similar tool you use) |
 | `makeappx.exe` / `signtool.exe` not found | Signing tools not present anywhere `register_app.ps1` looks | Use any of the three options in [Prerequisites](#prerequisites) - the direct-download option (A) has no extra tooling requirements and is fastest |
 | `nuget install ...` fails with `Unable to find package 'Microsoft.Windows.SDK.BuildTools'` | Standalone `nuget.exe` has no package source configured by default | Add `-Source https://api.nuget.org/v3/index.json` to the `nuget install` command (see Option B), or just use Option A instead |
 

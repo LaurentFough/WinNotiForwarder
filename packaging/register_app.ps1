@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-  Builds, signs, and registers the sparse package identity for Windows
-  Notification Forwarder so UserNotificationListener can move past
+  Builds, signs, and registers the sparse package identity for
+  WinNotiForwarder so UserNotificationListener can move past
   UNSPECIFIED. Run -Unregister to remove it again.
 
 .DESCRIPTION
@@ -21,10 +21,10 @@
     4. Signs the .msix
     5. Registers it against -DistPath via Add-AppxPackage -ExternalLocation
 
-  You must build the exe first: pyinstaller packaging/notification_forwarder.spec
+  You must build the exe first: pyinstaller packaging/WinNotiForwarder.spec
 
 .PARAMETER DistPath
-  Folder containing the built NotificationForwarder.exe. Defaults to
+  Folder containing the built WinNotiForwarder.exe. Defaults to
   ..\dist relative to this script (PyInstaller's default onefile output
   folder). Package identity attaches to this exact folder path, so don't
   move the exe elsewhere afterwards without re-running this script.
@@ -33,7 +33,7 @@
   Remove the registered identity package instead of registering it.
 
 .EXAMPLE
-  pyinstaller packaging/notification_forwarder.spec
+  pyinstaller packaging/WinNotiForwarder.spec
   powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1
 
 .EXAMPLE
@@ -142,14 +142,14 @@ if (-not $isAdmin) {
 
 Write-Host "DistPath before resolution: '$DistPath'"
 if (-not (Test-Path -LiteralPath $DistPath -PathType Container)) {
-    throw "DistPath '$DistPath' does not exist. Build the exe first: pyinstaller packaging/notification_forwarder.spec"
+    throw "DistPath '$DistPath' does not exist. Build the exe first: pyinstaller packaging/WinNotiForwarder.spec"
 }
 $DistPath = (Resolve-Path -LiteralPath $DistPath).Path
 Write-Host "DistPath after resolution: '$DistPath'"
 
-$ExePath = Join-Path $DistPath "NotificationForwarder.exe"
+$ExePath = Join-Path $DistPath "WinNotiForwarder.exe"
 if (-not (Test-Path $ExePath)) {
-    throw "NotificationForwarder.exe not found in '$DistPath'. Build it first: pyinstaller packaging/notification_forwarder.spec"
+    throw "WinNotiForwarder.exe not found in '$DistPath'. Build it first: pyinstaller packaging/WinNotiForwarder.spec"
 }
 
 $devMode = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -Name "AllowDevelopmentWithoutDevLicense" -ErrorAction SilentlyContinue
@@ -246,7 +246,7 @@ if ($existing) {
 Add-AppxPackage -Path $MsixPath -ExternalLocation $DistPath
 
 Write-Host ""
-Write-Host "Done. Run NotificationForwarder.exe from exactly this folder:"
+Write-Host "Done. Run WinNotiForwarder.exe from exactly this folder:"
 Write-Host "  $DistPath"
 Write-Host "(moving/copying it elsewhere breaks the identity link - re-run this script"
 Write-Host "against the new location if you need to move it)."

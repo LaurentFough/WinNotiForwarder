@@ -1,5 +1,5 @@
 """
-Windows Notification Forwarder
+WinNotiForwarder
 Forwards Windows notifications to multiple channels (FCM, Pushbullet, Ntfy)
 """
 import sys
@@ -79,7 +79,7 @@ def setup_logging():
         )
 
 
-class NotificationForwarder:
+class WinNotiForwarder:
     """Main application class that coordinates notification listening and forwarding"""
 
     def __init__(self):
@@ -94,7 +94,7 @@ class NotificationForwarder:
         try:
             # Validate configuration
             self.logger.info("=" * 60)
-            self.logger.info("Starting Windows Notification Forwarder")
+            self.logger.info("Starting WinNotiForwarder")
             self.logger.info("=" * 60)
 
             if not self.config.validate():
@@ -269,7 +269,7 @@ async def main():
     os.chdir(app_dir)
 
     # Create and run the forwarder
-    forwarder = NotificationForwarder()
+    forwarder = WinNotiForwarder()
     await forwarder.run()
 
 

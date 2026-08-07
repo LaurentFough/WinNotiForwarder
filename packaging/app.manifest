@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Side-by-side (fusion) manifest embedded into the built NotificationForwarder.exe
+  Side-by-side (fusion) manifest embedded into the built WinNotiForwarder.exe
   via PyInstaller. The <msix> element's publisher/packageName/applicationId must
   match Identity.Publisher, Identity.Name, and the Application Id in
   packaging/AppxManifest.xml exactly, or the exe will run with no package
   identity even after the sparse package is registered.
 -->
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
-  <assemblyIdentity version="1.0.0.0" name="NotificationForwarder" type="win32" />
+  <assemblyIdentity version="1.0.0.0" name="WinNotiForwarder" type="win32" />
 
   <msix xmlns="urn:schemas-microsoft-com:msix.v1"
         publisher="CN=WinNotiForwarder"
         packageName="WinNotiForwarder"
-        applicationId="NotificationForwarder" />
+        applicationId="WinNotiForwarder" />
 
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>

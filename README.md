@@ -1,4 +1,4 @@
-# Windows Notification Forwarder
+# WinNotiForwarder
 
 Forward all Windows 10/11 notifications to multiple notification channels. Get notified about what's happening on your Windows PC and remotely manage it from anywhere.
 
@@ -113,7 +113,7 @@ WHITELIST_APPS=Outlook,Teams,Slack
 
 3. If access is **UNSPECIFIED** and stays that way (no entry ever appears under Settings → Notifications, and `diagnose.py` either reports UNSPECIFIED forever or times out after 30s waiting on the access request):
    - This is expected, not a transient bug. `UserNotificationListener` requires the restricted `userNotificationListener` capability, which Windows only grants to apps with **package identity** (MSIX/sparse package). A plain `python main.py` process run from the system-wide `python.exe` has no package identity, so Windows has no app to attach a permission decision to — there's nothing to toggle in Settings.
-   - **Fix:** build the app into its own exe and register it with a sparse-package identity. This repo automates it — see **[packaging/README.md](packaging/README.md)** for the full step-by-step (build with PyInstaller, run `packaging/register_app.ps1`, then verify with `NotificationForwarder.exe --diagnose`).
+   - **Fix:** build the app into its own exe and register it with a sparse-package identity. This repo automates it — see **[packaging/README.md](packaging/README.md)** for the full step-by-step (build with PyInstaller, run `packaging/register_app.ps1`, then verify with `WinNotiForwarder.exe --diagnose`).
 
 ### 4. Run the Application
 
@@ -192,9 +192,9 @@ Download from: https://nssm.cc/download
 Open **Command Prompt as Administrator** and run:
 
 ```bash
-nssm install NotificationForwarder "C:\Path\To\Python\python.exe" "C:\Path\To\windows-notification-forwarder\main.py"
-nssm set NotificationForwarder AppDirectory "C:\Path\To\windows-notification-forwarder"
-nssm start NotificationForwarder
+nssm install WinNotiForwarder "C:\Path\To\Python\python.exe" "C:\Path\To\WinNotiForwarder\main.py"
+nssm set WinNotiForwarder AppDirectory "C:\Path\To\WinNotiForwarder"
+nssm start WinNotiForwarder
 ```
 
 Replace the paths with your actual Python and project paths.
@@ -203,16 +203,16 @@ Replace the paths with your actual Python and project paths.
 
 ```bash
 # Check status
-nssm status NotificationForwarder
+nssm status WinNotiForwarder
 
 # Stop service
-nssm stop NotificationForwarder
+nssm stop WinNotiForwarder
 
 # Restart service
-nssm restart NotificationForwarder
+nssm restart WinNotiForwarder
 
 # Remove service
-nssm remove NotificationForwarder confirm
+nssm remove WinNotiForwarder confirm
 ```
 
 ## Testing
@@ -300,7 +300,7 @@ pip install -r requirements.txt
 ## Project Structure
 
 ```
-windows-notification-forwarder/
+WinNotiForwarder/
 ├── main.py                       # Main application entry point
 ├── config.py                     # Configuration management
 ├── notification_listener.py      # Windows notification listener (WinRT)
@@ -330,7 +330,7 @@ windows-notification-forwarder/
 │
 └── packaging/                     # MSIX identity packaging (see packaging/README.md)
     ├── README.md                # Why/how to grant real notification access
-    ├── notification_forwarder.spec  # PyInstaller build spec
+    ├── WinNotiForwarder.spec     # PyInstaller build spec
     ├── AppxManifest.xml         # Sparse package identity manifest
     ├── app.manifest              # Side-by-side manifest embedded in the built exe
     └── register_app.ps1         # Build/sign/register (or -Unregister) the identity

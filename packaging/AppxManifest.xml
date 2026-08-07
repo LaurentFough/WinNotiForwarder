@@ -2,7 +2,7 @@
 <!--
   Sparse package ("packaging with external location") manifest.
 
-  This grants package identity to the unpackaged NotificationForwarder.exe
+  This grants package identity to the unpackaged WinNotiForwarder.exe
   build so Windows will treat it as a real app for restricted-capability
   APIs like UserNotificationListener - a plain python.exe process has no
   package identity and can never move past UserNotificationListenerAccessStatus.UNSPECIFIED.
@@ -21,8 +21,8 @@
   <Identity Name="WinNotiForwarder" Publisher="CN=WinNotiForwarder" Version="1.0.0.0" ProcessorArchitecture="neutral" />
 
   <Properties>
-    <DisplayName>Windows Notification Forwarder</DisplayName>
-    <PublisherDisplayName>Windows Notification Forwarder</PublisherDisplayName>
+    <DisplayName>WinNotiForwarder</DisplayName>
+    <PublisherDisplayName>WinNotiForwarder</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
     <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
   </Properties>
@@ -42,10 +42,10 @@
   </Capabilities>
 
   <Applications>
-    <Application Id="NotificationForwarder" Executable="NotificationForwarder.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+    <Application Id="WinNotiForwarder" Executable="WinNotiForwarder.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
       <uap:VisualElements
         AppListEntry="none"
-        DisplayName="Windows Notification Forwarder"
+        DisplayName="WinNotiForwarder"
         Description="Forwards Windows notifications to FCM/Pushbullet/Ntfy"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"

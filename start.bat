@@ -1,9 +1,9 @@
 @echo off
-REM Windows Notification Forwarder - Startup Script
+REM WinNotiForwarder - Startup Script
 REM This script starts the notification forwarder application
 
 echo ============================================================
-echo Windows Notification Forwarder
+echo WinNotiForwarder
 echo ============================================================
 echo.
 
@@ -12,7 +12,7 @@ python --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python is not installed or not in PATH!
     echo.
-    echo Please install Python 3.8+ from https://www.python.org/downloads/
+    echo Please install Python 3.9-3.14 from https://www.python.org/downloads/
     echo.
     pause
     exit /b 1
