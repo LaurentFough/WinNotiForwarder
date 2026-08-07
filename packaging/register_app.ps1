@@ -119,11 +119,12 @@ if ($Unregister) {
 
 # --- Register flow ---
 
-$DistPath = (Resolve-Path -Path $DistPath -ErrorAction SilentlyContinue)
-if (-not $DistPath) {
-    throw "DistPath does not exist. Build the exe first: pyinstaller packaging/notification_forwarder.spec"
+Write-Host "DistPath before resolution: '$DistPath'"
+if (-not (Test-Path -LiteralPath $DistPath -PathType Container)) {
+    throw "DistPath '$DistPath' does not exist. Build the exe first: pyinstaller packaging/notification_forwarder.spec"
 }
-$DistPath = $DistPath.Path
+$DistPath = (Resolve-Path -LiteralPath $DistPath).Path
+Write-Host "DistPath after resolution: '$DistPath'"
 
 $ExePath = Join-Path $DistPath "NotificationForwarder.exe"
 if (-not (Test-Path $ExePath)) {
