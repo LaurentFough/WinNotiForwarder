@@ -95,17 +95,20 @@ steps.
 
    This produces `dist/NotificationForwarder.exe`.
 
-2. Register the identity package against that `dist` folder:
+2. Register the identity package against that `dist` folder, from an
+   **elevated (Administrator) PowerShell window**:
 
    ```powershell
    powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1
    ```
 
-   The package registration itself is per-user and needs no elevation,
-   but expect **one UAC prompt** the first time: trusting the signing
-   certificate in `LocalMachine\Root` requires admin, since
-   `Add-AppxPackage`'s certificate chain validation checks the
-   machine-wide store rather than your user's own `CurrentUser\Root`.
+   Elevation is required: `Add-AppxPackage`'s certificate chain
+   validation checks the machine-wide `LocalMachine\Root` store rather
+   than your user's own `CurrentUser\Root`, and in practice
+   `Add-AppxPackage` itself also needs to run elevated for registration
+   against `-ExternalLocation` to succeed. The script checks for this
+   up front and fails fast with a clear message if it isn't elevated,
+   rather than partway through.
 
 3. Copy your `.env` (and `service-account.json` if using FCM) into
    `dist/`, next to `NotificationForwarder.exe`.
@@ -136,7 +139,7 @@ powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1 -Unregister
 
 | Error | Cause | Fix |
 | --- | --- | --- |
-| `0x800B0109` / `CERT_E_UNTRUSTEDROOT` | Self-signed cert isn't trusted where `Add-AppxPackage`'s chain validation actually checks it (`LocalMachine\Root`, not just the per-user stores) | `register_app.ps1` handles this automatically, with one UAC prompt for the `LocalMachine\Root` import; if it still fails, manually run (elevated) `Import-Certificate -FilePath packaging\out\WinNotiForwarder.cer -CertStoreLocation Cert:\LocalMachine\Root` |
+| `0x800B0109` / `CERT_E_UNTRUSTEDROOT` | Not running elevated - `Add-AppxPackage`'s chain validation checks `LocalMachine\Root`, not the per-user stores, and the whole command needs elevation here | Re-run from an elevated (Administrator) PowerShell window - `register_app.ps1` now checks for this up front and refuses to proceed otherwise |
 | `0x80073CF9` | This exact package version is already registered | Re-run `register_app.ps1` - it removes the previous registration first, but if it was registered some other way, run `Get-AppxPackage WinNotiForwarder \| Remove-AppxPackage` manually first |
 | Access still `UNSPECIFIED`/hangs after registering | `app.manifest`'s `publisher`/`packageName`/`applicationId` don't match `AppxManifest.xml`'s `Identity`/`Application` values, or you ran the exe from somewhere other than the registered `-DistPath` | Re-check the two manifests match exactly; confirm you're running the exe from the exact registered folder |
 | `makeappx.exe` / `signtool.exe` not found | Signing tools not present anywhere `register_app.ps1` looks | Use any of the three options in [Prerequisites](#prerequisites) - the direct-download option (A) has no extra tooling requirements and is fastest |

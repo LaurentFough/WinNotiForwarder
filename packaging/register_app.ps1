@@ -6,16 +6,20 @@
 
 .DESCRIPTION
   See packaging/README.md for the full explanation of why this is needed.
+
+  Must be run from an elevated (Administrator) PowerShell window -
+  Add-AppxPackage's certificate chain validation checks the machine-wide
+  LocalMachine\Root store, and in practice Add-AppxPackage itself also
+  needs to run elevated for registration against -ExternalLocation to
+  succeed, despite this being documented elsewhere as a per-user operation.
+
   On a normal (-Register, the default) run this:
     1. Locates MakeAppx.exe / SignTool.exe (Windows 10/11 SDK)
     2. Creates (or reuses) a self-signed certificate and trusts it in
        CurrentUser\TrustedPeople, CurrentUser\Root, and LocalMachine\Root
-       (the last one needs admin - expect one UAC prompt the first time;
-       Add-AppxPackage's chain validation checks the machine-wide store)
     3. Packs packaging/AppxManifest.xml into a .msix
     4. Signs the .msix
     5. Registers it against -DistPath via Add-AppxPackage -ExternalLocation
-       (this part itself is per-user and needs no elevation)
 
   You must build the exe first: pyinstaller packaging/notification_forwarder.spec
 
@@ -126,6 +130,16 @@ if ($Unregister) {
 
 # --- Register flow ---
 
+# Proven necessary by an actual run: trusting the cert only in
+# LocalMachine\Root (via a self-elevating sub-process) was not enough -
+# Add-AppxPackage itself also needs to run elevated for registration to
+# succeed here, not just the certificate import. Requiring elevation
+# up front is simpler and more honest than a partial self-elevation.
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+if (-not $isAdmin) {
+    throw "This script must be run from an elevated (Administrator) PowerShell window. Right-click PowerShell > 'Run as Administrator', cd back to the repo, and re-run: powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1"
+}
+
 Write-Host "DistPath before resolution: '$DistPath'"
 if (-not (Test-Path -LiteralPath $DistPath -PathType Container)) {
     throw "DistPath '$DistPath' does not exist. Build the exe first: pyinstaller packaging/notification_forwarder.spec"
@@ -192,21 +206,15 @@ if (-not $trustedRoot) {
 # The AppX deployment service validates the certificate chain against the
 # machine-wide store, not the interactive user's CurrentUser store, so
 # CurrentUser\Root alone can still fail with CERT_E_UNTRUSTEDROOT.
-# LocalMachine\Root requires elevation - self-elevate just for this one
-# step (a UAC prompt) rather than requiring the whole script run as Admin.
+# LocalMachine\Root requires elevation. A self-elevating sub-process for
+# just this one step was tried and proved insufficient in practice -
+# Add-AppxPackage itself also needs to run elevated, not just this import -
+# so this whole script now requires elevation up front instead (see the
+# check right after the param block).
 $trustedRootMachine = Get-ChildItem Cert:\LocalMachine\Root -ErrorAction SilentlyContinue | Where-Object { $_.Thumbprint -eq $cert.Thumbprint }
 if (-not $trustedRootMachine) {
-    Write-Host "  Trusting certificate in LocalMachine\Root (requires admin - expect a UAC prompt)..."
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
-    if ($isAdmin) {
-        Import-Certificate -FilePath $CerPath -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
-    } else {
-        $importCmd = "Import-Certificate -FilePath '$CerPath' -CertStoreLocation Cert:\LocalMachine\Root"
-        $proc = Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile", "-Command", $importCmd -Wait -PassThru
-        if ($proc.ExitCode -ne 0) {
-            throw "Elevated certificate import into LocalMachine\Root failed or was declined (exit code $($proc.ExitCode)). This step needs admin approval to fix CERT_E_UNTRUSTEDROOT."
-        }
-    }
+    Write-Host "  Trusting certificate in LocalMachine\Root..."
+    Import-Certificate -FilePath $CerPath -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
 }
 
 # Pack only AppxManifest.xml, not the whole packaging/ directory: $ScriptRoot
