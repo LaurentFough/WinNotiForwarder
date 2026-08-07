@@ -173,14 +173,33 @@ $pfxPassword = ConvertTo-SecureString -String ([System.Guid]::NewGuid().ToString
 Export-PfxCertificate -Cert $cert -FilePath $PfxPath -Password $pfxPassword | Out-Null
 Export-Certificate -Cert $cert -FilePath $CerPath | Out-Null
 
-$trusted = Get-ChildItem Cert:\CurrentUser\TrustedPeople | Where-Object { $_.Thumbprint -eq $cert.Thumbprint }
-if (-not $trusted) {
+$trustedPeople = Get-ChildItem Cert:\CurrentUser\TrustedPeople | Where-Object { $_.Thumbprint -eq $cert.Thumbprint }
+if (-not $trustedPeople) {
     Write-Host "  Trusting certificate in CurrentUser\TrustedPeople..."
     Import-Certificate -FilePath $CerPath -CertStoreLocation Cert:\CurrentUser\TrustedPeople | Out-Null
 }
+# Self-signed certs are their own root, so full chain validation (which
+# Add-AppxPackage performs) also needs the cert trusted as a root CA -
+# TrustedPeople alone isn't always enough and can fail with
+# CERT_E_UNTRUSTEDROOT (0x800B0109) at registration time.
+$trustedRoot = Get-ChildItem Cert:\CurrentUser\Root | Where-Object { $_.Thumbprint -eq $cert.Thumbprint }
+if (-not $trustedRoot) {
+    Write-Host "  Trusting certificate in CurrentUser\Root..."
+    Import-Certificate -FilePath $CerPath -CertStoreLocation Cert:\CurrentUser\Root | Out-Null
+}
+
+# Pack only AppxManifest.xml, not the whole packaging/ directory: $ScriptRoot
+# also contains sdk-tools/ (the ~21MB NuGet package payload), out/ (which
+# holds the signing .pfx - a PRIVATE KEY that must never end up inside the
+# package it signs), dist/, build/, and this script itself. MakeAppx packs
+# everything under /d recursively, so we stage just the one file we want.
+$StagingDir = Join-Path $OutDir "manifest-staging"
+Remove-Item -Path $StagingDir -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $StagingDir -Force | Out-Null
+Copy-Item -Path (Join-Path $ManifestDir "AppxManifest.xml") -Destination $StagingDir -Force
 
 Write-Host "Packing identity package..."
-& $MakeAppx pack /o /d $ManifestDir /nv /p $MsixPath
+& $MakeAppx pack /o /d $StagingDir /nv /p $MsixPath
 if ($LASTEXITCODE -ne 0) { throw "MakeAppx pack failed (exit code $LASTEXITCODE)." }
 
 Write-Host "Signing identity package..."
