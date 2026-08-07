@@ -257,7 +257,7 @@ powershell -ExecutionPolicy Bypass -File tools/test_notification.ps1
 - Only **persistent notifications** can be captured
 
 **Check Logs:**
-- Look at `notification_forwarder.log` for detailed errors
+- Look at `WinNotiForwarder.log` for detailed errors
 
 ### "Access denied" or "Access unspecified"
 
@@ -295,7 +295,7 @@ pip install -r requirements.txt
 - Make sure `.env` file exists with proper configuration
 - Verify `service-account.json` exists and is valid JSON (if using FCM)
 - Run `python tools/diagnose.py` to see the exact error
-- Check `notification_forwarder.log`
+- Check `WinNotiForwarder.log`
 
 ## Project Structure
 
@@ -360,7 +360,7 @@ WinNotiForwarder/
 
 - Provider credentials stored locally in `.env` file (never committed to git)
 - Notifications only sent to configured providers (FCM, Pushbullet, Ntfy)
-- Logs stored locally in `notification_forwarder.log`
+- Logs stored locally in `WinNotiForwarder.log`, in the same directory as `main.py`/the exe (not wherever it happened to be launched from), rotated at 5MB with 3 backups kept. `--diagnose` runs log separately to `WinNotiForwarder-diagnose.log` so one-off checks don't clutter the operational log. Warnings and errors also go to the Windows **Event Log** (Application, source "WinNotiForwarder") when `pywin32` is available - check there if you're running as a background service with no console to watch
 - **Never commit service-account.json or .env to version control** (already in .gitignore)
 - FCM uses OAuth2 with short-lived access tokens
 - Pushbullet and Ntfy use HTTPS for secure transmission
@@ -408,7 +408,7 @@ MIT License - Free to use and modify
 
 ## Support
 
-- Check `notification_forwarder.log` for errors
+- Check `WinNotiForwarder.log` for errors
 - Run `python tools/diagnose.py` for diagnostics
 
 ## Integration with NotifyHub

@@ -14,12 +14,29 @@ sys.coinit_flags = 0
 
 import asyncio
 import logging
+import logging.handlers
 import socket
 from pathlib import Path
 
 from config import Config
 from notification_listener import WindowsNotificationListener
 from providers import ProviderManager, FCMProvider, PushbulletProvider, NtfyProvider
+
+EVENT_LOG_SOURCE = "WinNotiForwarder"
+
+
+def get_app_dir() -> Path:
+    """
+    Directory this app's own files (exe or script) live in - not whatever
+    the current working directory happens to be at launch time, which
+    depends entirely on how the caller invoked it. Log files and .env
+    lookup both need this to behave consistently regardless of invocation
+    style (double-click, `cmd /c`, launched from an unrelated directory, a
+    Windows service manager, etc).
+    """
+    if getattr(sys, 'frozen', False):
+        return Path(sys.executable).parent
+    return Path(__file__).parent
 
 
 def check_loopback_connectivity(timeout: float = 3.0) -> bool:
@@ -49,26 +66,63 @@ def check_loopback_connectivity(timeout: float = 3.0) -> bool:
         return False
 
 
-def setup_logging():
-    """Configure logging for the application with UTF-8 encoding support"""
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+def setup_logging(log_filename: str) -> Path:
+    """
+    Configure logging: console + a rotating file in this app's own
+    directory (see get_app_dir - not the current working directory) + a
+    best-effort Windows Event Log handler. UTF-8 throughout for Windows
+    console compatibility.
 
-    # Console handler with UTF-8 encoding for Windows compatibility
+    Args:
+        log_filename: e.g. "WinNotiForwarder.log" for a normal run, or a
+                      distinct name for --diagnose so one-off diagnostic
+                      checks don't clutter the main operational log.
+
+    Returns:
+        The full path of the log file, for printing/reference.
+    """
+    log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    log_path = get_app_dir() / log_filename
+
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(logging.Formatter(log_format))
 
-    # File handler with UTF-8 encoding
-    file_handler = logging.FileHandler("notification_forwarder.log", encoding='utf-8')
+    # Rotating so a long-running background service doesn't grow this
+    # file unbounded: 5MB per file, keep 3 old ones.
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8'
+    )
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(logging.Formatter(log_format))
 
-    # Configure root logger
-    logging.basicConfig(
-        level=logging.INFO,
-        format=log_format,
-        handlers=[console_handler, file_handler]
-    )
+    handlers = [console_handler, file_handler]
+
+    # Best-effort Windows Event Log integration (Application log, source
+    # "WinNotiForwarder") - useful when running as an NSSM/Windows service,
+    # where nobody's watching a console. Requires pywin32, which isn't a
+    # hard dependency of this project; skip quietly (falling back to
+    # console+file only) if it's unavailable or registration fails (e.g.
+    # no permission to register the event source on first run).
+    if sys.platform == 'win32':
+        try:
+            event_handler = logging.handlers.NTEventLogHandler(EVENT_LOG_SOURCE)
+            # WARNING+ only - the Event Log isn't the place for routine
+            # per-notification INFO chatter, just things worth an admin's
+            # attention.
+            event_handler.setLevel(logging.WARNING)
+            event_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+            handlers.append(event_handler)
+        except Exception:
+            pass
+
+    logging.basicConfig(level=logging.INFO, format=log_format, handlers=handlers, force=True)
+
+    if not any(isinstance(h, logging.handlers.NTEventLogHandler) for h in handlers):
+        logging.getLogger(__name__).info(
+            "Windows Event Log integration unavailable (pywin32 missing or "
+            "event source registration failed) - continuing with console+file logging only."
+        )
 
     # Ensure stdout uses UTF-8 on Windows
     if sys.platform == 'win32':
@@ -77,6 +131,8 @@ def setup_logging():
             sys.stdout.buffer, encoding='utf-8', errors='replace',
             line_buffering=True, write_through=True
         )
+
+    return log_path
 
 
 class WinNotiForwarder:
@@ -213,10 +269,13 @@ async def run_diagnose():
     all, see check_loopback_connectivity()'s docstring - that's a different,
     unrelated failure mode.
     """
+    log_path = setup_logging("WinNotiForwarder-diagnose.log")
+
     print("=" * 60)
     print("Notification Access Diagnosis")
     print("=" * 60)
     print(f"Running from: {sys.executable if getattr(sys, 'frozen', False) else __file__}")
+    print(f"Log file: {log_path}")
     print()
 
     listener = WindowsNotificationListener(callback=lambda n: None)
@@ -233,23 +292,17 @@ async def run_diagnose():
 
 async def main():
     """Application entry point"""
-    # Setup logging
-    setup_logging()
-
     if "--diagnose" in sys.argv:
         await run_diagnose()
         return
 
-    # Get the directory where the script/exe is located
-    if getattr(sys, 'frozen', False):
-        # Running as compiled executable
-        app_dir = Path(sys.executable).parent
-    else:
-        # Running as script
-        app_dir = Path(__file__).parent
+    log_path = setup_logging("WinNotiForwarder.log")
+
+    app_dir = get_app_dir()
 
     # Check if .env file exists in app directory
     env_file = app_dir / ".env"
+    logging.info(f"Log file: {log_path}")
     logging.info(f"Looking for .env file at: {env_file}")
     logging.info(f"Current working directory: {Path.cwd()}")
     logging.info(f"App directory: {app_dir}")

@@ -13,3 +13,8 @@ python-dotenv>=1.0.0
 
 # Firebase Cloud Messaging authentication
 google-auth>=2.23.0
+
+# Optional: enables logging warnings/errors to the Windows Event Log
+# (Application log, source "WinNotiForwarder"). If not installed, logging
+# falls back to console+file only - nothing else depends on this.
+# pywin32>=306
