@@ -41,6 +41,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Everything below runs inside a try/catch that prints the exact failing
+# line and call stack on error. The default uncaught-error display from
+# `powershell -File` has been unhelpfully vague on some systems while
+# debugging this script (attributing errors to the script itself instead
+# of the actual statement), so we make our own diagnostics explicit rather
+# than relying on it.
+try {
+
 # $PSScriptRoot / $MyInvocation.MyCommand.Path are unreliable here: Windows
 # PowerShell 5.1 has a known bug where both come back empty for scripts run
 # from a UNC path (including mapped network/VM shared-folder drives, e.g. a
@@ -186,3 +194,19 @@ Write-Host "against the new location if you need to move it)."
 Write-Host ""
 Write-Host "Verify access with:"
 Write-Host "  $ExePath --diagnose"
+
+}
+catch {
+    Write-Host ""
+    Write-Host "===== FAILED =====" -ForegroundColor Red
+    Write-Host "Message: $($_.Exception.Message)"
+    Write-Host ""
+    Write-Host "Location:"
+    Write-Host $_.InvocationInfo.PositionMessage
+    Write-Host ""
+    Write-Host "Call stack:"
+    Write-Host $_.ScriptStackTrace
+    Write-Host ""
+    Write-Host "Debug context: DistPath='$DistPath' ScriptRoot='$ScriptRoot' PWD='$($PWD.Path)' PSScriptRoot='$PSScriptRoot' MyCommandPath='$($MyInvocation.MyCommand.Path)'"
+    exit 1
+}
