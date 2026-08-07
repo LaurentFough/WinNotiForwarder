@@ -34,21 +34,44 @@ steps.
 - **PyInstaller**: `pip install pyinstaller`
 - **`MakeAppx.exe` and `SignTool.exe`** - you do **not** need the full
   Windows SDK for these (that installer's "everything" option is several
-  GB). Pick one:
-  - **Lightweight (recommended), no installer:** the
+  GB). Three ways to get them, in order of convenience; `register_app.ps1`
+  auto-detects whichever one you use, no flags needed:
+
+  - **Option A - direct download, zero extra tooling (recommended).**
+    Just PowerShell + internet access; no `nuget.exe`, no `dotnet`, no
+    installer. This downloads the
     [`Microsoft.Windows.SDK.BuildTools`](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools)
-    NuGet package contains just these tools, ~21MB, nothing to install:
+    NuGet package (~21MB) directly and unzips it - a `.nupkg` file is just
+    a zip in disguise:
     ```powershell
-    # requires the nuget CLI (https://www.nuget.org/downloads) or `dotnet`
+    $dest = "packaging\sdk-tools"
+    New-Item -ItemType Directory -Path $dest -Force | Out-Null
+    Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Windows.SDK.BuildTools" -OutFile "$dest\buildtools.zip"
+    Expand-Archive -Path "$dest\buildtools.zip" -DestinationPath $dest -Force
+    ```
+    `register_app.ps1` recursively searches `packaging\sdk-tools\` for
+    `makeappx.exe`/`signtool.exe`, so the exact nested folder layout
+    inside the package doesn't matter.
+
+  - **Option B - `nuget` CLI**, if you already have it (or prefer it to a
+    raw `Invoke-WebRequest`). Get `nuget.exe` itself from
+    [nuget.org/downloads](https://www.nuget.org/downloads) - it's a
+    single standalone `.exe`, nothing to install, just put it on your
+    `PATH` or reference it by full path:
+    ```powershell
     nuget install Microsoft.Windows.SDK.BuildTools -OutputDirectory packaging\sdk-tools
     ```
-    `register_app.ps1` looks in `packaging\sdk-tools\` (and the NuGet
-    global package cache) automatically - no extra flags needed.
-  - **Or, the SDK installer** - run the
+    (If you have the .NET SDK / Visual Studio installed, `dotnet` also
+    works but only from inside a project via `dotnet add package` - the
+    direct download in Option A or `nuget.exe` in Option B are simpler
+    for a one-off tool fetch like this.)
+
+  - **Option C - the SDK installer**, if you'd rather have a "real"
+    install (e.g. you'll reuse these tools for other projects). Run the
     [Windows SDK installer](https://developer.microsoft.com/windows/downloads/windows-sdk/)
     and on the feature-selection screen, deselect everything except
-    **"Windows SDK Signing Tools for Desktop Apps"**. Still much smaller
-    than a full install. `register_app.ps1` finds it automatically too.
+    **"Windows SDK Signing Tools for Desktop Apps"** - still much smaller
+    than a full install.
 - **Developer Mode** enabled: Settings > Privacy & security > For
   developers > Developer Mode. (Sideloading also works without it via a
   provisioning trust prompt, but Developer Mode is the simplest path.)
@@ -106,7 +129,7 @@ powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1 -Unregister
 | `0x800B0109` / `CERT_E_UNTRUSTEDROOT` | Self-signed cert isn't trusted | `register_app.ps1` should handle this automatically; if it still fails, manually import `packaging/out/WinNotiForwarder.cer` into `Cert:\CurrentUser\TrustedPeople` |
 | `0x80073CF9` | This exact package version is already registered | Re-run `register_app.ps1` - it removes the previous registration first, but if it was registered some other way, run `Get-AppxPackage WinNotiForwarder \| Remove-AppxPackage` manually first |
 | Access still `UNSPECIFIED`/hangs after registering | `app.manifest`'s `publisher`/`packageName`/`applicationId` don't match `AppxManifest.xml`'s `Identity`/`Application` values, or you ran the exe from somewhere other than the registered `-DistPath` | Re-check the two manifests match exactly; confirm you're running the exe from the exact registered folder |
-| `makeappx.exe` / `signtool.exe` not found | Windows SDK signing tools not installed | Install the "Windows SDK Signing Tools for Desktop Apps" component (see Prerequisites) |
+| `makeappx.exe` / `signtool.exe` not found | Signing tools not present anywhere `register_app.ps1` looks | Use any of the three options in [Prerequisites](#prerequisites) - the direct-download option (A) has no extra tooling requirements and is fastest |
 
 If you get this working end-to-end and find something in this doc or
 the scripts that needed a tweak, a PR is very welcome.
