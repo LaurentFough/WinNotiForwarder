@@ -307,7 +307,7 @@ pip install -r requirements.txt
 WinNotiForwarder/
 ├── main.py                       # Main application entry point
 ├── config.py                     # Configuration management
-├── notification_listener.py      # Windows notification listener (WinRT)
+├── winrt_listener.py            # Windows notification listener (WinRT)
 ├── start.bat                     # Windows startup script
 ├── requirements.txt              # Python dependencies
 ├── .env.example                 # Configuration template

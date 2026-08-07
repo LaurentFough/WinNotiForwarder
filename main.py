@@ -19,7 +19,7 @@ import socket
 from pathlib import Path
 
 from config import Config
-from notification_listener import WindowsNotificationListener
+from winrt_listener import WindowsNotificationListener
 from providers import ProviderManager, FCMProvider, PushbulletProvider, NtfyProvider
 
 EVENT_LOG_SOURCE = "WinNotiForwarder"
