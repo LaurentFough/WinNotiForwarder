@@ -4,6 +4,7 @@ service-account.json
 
 # Packaging artifacts (built exe, signing cert/keys, packed msix)
 packaging/out/
+packaging/sdk-tools/
 
 # Python
 __pycache__/
@@ -44,3 +45,5 @@ logs/
 *.swp
 *.swo
 .claude/
+.history/
+scratchPad.md

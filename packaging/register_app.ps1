@@ -91,7 +91,12 @@ function Find-SdkTool {
 
     $roots = @(
         "${Env:ProgramFiles(x86)}\Windows Kits\10\bin",
-        "$Env:ProgramFiles\Windows Kits\10\bin"
+        "$Env:ProgramFiles\Windows Kits\10\bin",
+        # Microsoft.Windows.SDK.BuildTools NuGet package (~21MB, no installer
+        # needed) - either the global package cache, or extracted manually
+        # into packaging\sdk-tools\ - see packaging/README.md.
+        "$Env:UserProfile\.nuget\packages\microsoft.windows.sdk.buildtools",
+        (Join-Path $ScriptRoot "sdk-tools")
     )
     foreach ($root in $roots) {
         if (Test-Path $root) {

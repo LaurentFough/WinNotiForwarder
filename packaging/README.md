@@ -32,11 +32,23 @@ steps.
 ## Prerequisites
 
 - **PyInstaller**: `pip install pyinstaller`
-- **Windows 10/11 SDK signing tools** - install the "Windows SDK Signing
-  Tools for Desktop Apps" component from the
-  [Windows SDK installer](https://developer.microsoft.com/windows/downloads/windows-sdk/)
-  (you don't need the whole SDK). This provides `MakeAppx.exe` and
-  `SignTool.exe`, which `register_app.ps1` looks for automatically.
+- **`MakeAppx.exe` and `SignTool.exe`** - you do **not** need the full
+  Windows SDK for these (that installer's "everything" option is several
+  GB). Pick one:
+  - **Lightweight (recommended), no installer:** the
+    [`Microsoft.Windows.SDK.BuildTools`](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools)
+    NuGet package contains just these tools, ~21MB, nothing to install:
+    ```powershell
+    # requires the nuget CLI (https://www.nuget.org/downloads) or `dotnet`
+    nuget install Microsoft.Windows.SDK.BuildTools -OutputDirectory packaging\sdk-tools
+    ```
+    `register_app.ps1` looks in `packaging\sdk-tools\` (and the NuGet
+    global package cache) automatically - no extra flags needed.
+  - **Or, the SDK installer** - run the
+    [Windows SDK installer](https://developer.microsoft.com/windows/downloads/windows-sdk/)
+    and on the feature-selection screen, deselect everything except
+    **"Windows SDK Signing Tools for Desktop Apps"**. Still much smaller
+    than a full install. `register_app.ps1` finds it automatically too.
 - **Developer Mode** enabled: Settings > Privacy & security > For
   developers > Developer Mode. (Sideloading also works without it via a
   provisioning trust prompt, but Developer Mode is the simplest path.)
