@@ -11,7 +11,49 @@ import sys
 sys.coinit_flags = 0
 
 import asyncio
+import socket
 from pathlib import Path
+
+
+def check_loopback_connectivity(timeout: float = 3.0) -> bool:
+    """
+    Quick synchronous self-test: can a local 127.0.0.1 TCP connection be
+    established at all? asyncio's ProactorEventLoop needs this to succeed
+    just to start up on Windows - if something intercepts/reroutes loopback
+    traffic (observed cause: Proxifier with "Handle Direct Connections"
+    enabled; likely also true of similar proxy/VPN/traffic-shaping tools),
+    asyncio.run() hangs indefinitely with no error and no other symptom,
+    before any code below this point ever runs. Bounded with a timeout so
+    we fail fast with an actionable message instead of hanging forever.
+    """
+    try:
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(('127.0.0.1', 0))
+        server.listen(1)
+        port = server.getsockname()[1]
+
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.settimeout(timeout)
+        client.connect(('127.0.0.1', port))
+        client.close()
+        server.close()
+        return True
+    except OSError:
+        return False
+
+
+if not check_loopback_connectivity():
+    print(
+        "ERROR: Could not establish a local 127.0.0.1 TCP connection within a few seconds.\n\n"
+        "This app (and Python's asyncio on Windows generally) needs that to work - without it,\n"
+        "asyncio.run() hangs indefinitely with no error and no other symptom.\n\n"
+        "The most common cause is a proxy/VPN/traffic-interception tool capturing loopback\n"
+        "connections (confirmed cause in one case: Proxifier's \"Handle Direct Connections\"\n"
+        "option). Disable that, or add an explicit direct/bypass exception for\n"
+        "127.0.0.1/localhost, then try again."
+    )
+    input("\nPress Enter to exit...")
+    sys.exit(1)
 
 print("=" * 60)
 print("Windows Notification Forwarder - Diagnostics")

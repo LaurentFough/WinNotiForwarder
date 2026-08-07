@@ -269,6 +269,12 @@ python tools/diagnose.py
 - **DENIED:** Go to Settings → Privacy & Security → Notifications, find **Python** in the list, and toggle it ON.
 - **UNSPECIFIED (or the request times out/hangs):** Not fixable from Settings — see [Grant Notification Access](#3-grant-notification-access) above and [packaging/README.md](packaging/README.md) to build and register a properly identified exe.
 
+### App hangs completely with zero output, even before any banner prints
+
+This is a different problem from the DENIED/UNSPECIFIED cases above — those still print status text. If nothing prints at all (not even the diagnostic banner), the app has a built-in self-test for this: it verifies a local `127.0.0.1` TCP connection can be established before doing anything else, since Python's `asyncio` needs that to work on Windows just to start its event loop. If that self-test fails, you'll see a clear error instead of a silent hang.
+
+The confirmed cause of this in practice: a proxy/VPN/traffic-interception tool capturing loopback connections — specifically, **Proxifier** with **"Handle Direct Connections"** enabled. Disabling that setting (Proxifier → this option, independent of any specific proxification rule) resolved it. If you use a similar tool (Proxifier, Proxycap, a corporate VPN client, etc.), check for an equivalent setting or add an explicit bypass/direct exception for `127.0.0.1`/`localhost`.
+
 ### Module not found errors
 
 Install missing dependencies:

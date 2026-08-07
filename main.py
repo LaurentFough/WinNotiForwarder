@@ -4,45 +4,49 @@ Forwards Windows notifications to multiple channels (FCM, Pushbullet, Ntfy)
 """
 import sys
 
-
-def _chk(msg):
-    """TEMPORARY startup checkpoint for hang diagnosis - remove once found.
-    Writes to both a plain debug file and stdout, always flushed, so it's
-    visible even if the process gets killed before the console is read."""
-    try:
-        with open("startup_debug.log", "a", encoding="utf-8") as f:
-            f.write(msg + "\n")
-    except Exception:
-        pass
-    try:
-        print(msg, flush=True)
-    except Exception:
-        pass
-
-
-_chk("[0] process started")
-
-# Must run before anything can import pythoncom (e.g. a PyInstaller Windows
-# runtime hook, even though this project never imports pywin32 directly):
-# pythoncom defaults to initializing COM as STA on import, and a WinRT async
-# call awaited from an STA thread with no Windows message pump running never
-# completes - it just hangs forever. Forcing MTA (0) here avoids that.
+# Defensive measure for a related (but distinct) class of hang: pythoncom
+# defaults to initializing COM as STA on import, which can happen implicitly
+# via a PyInstaller Windows runtime hook even though this project never
+# imports pywin32 directly. A WinRT async call awaited from an STA thread
+# with no Windows message pump running never completes. This has to run
+# before anything could import pythoncom.
 sys.coinit_flags = 0
-_chk("[1] set coinit_flags")
 
 import asyncio
-_chk("[2] imported asyncio")
 import logging
-_chk("[3] imported logging")
+import socket
 from pathlib import Path
-_chk("[4] imported pathlib")
 
 from config import Config
-_chk("[5] imported config")
 from notification_listener import WindowsNotificationListener
-_chk("[6] imported notification_listener")
 from providers import ProviderManager, FCMProvider, PushbulletProvider, NtfyProvider
-_chk("[7] imported providers")
+
+
+def check_loopback_connectivity(timeout: float = 3.0) -> bool:
+    """
+    Quick synchronous self-test: can a local 127.0.0.1 TCP connection be
+    established at all? asyncio's ProactorEventLoop needs this to succeed
+    just to start up on Windows - if something intercepts/reroutes loopback
+    traffic (observed cause: Proxifier with "Handle Direct Connections"
+    enabled; likely also true of similar proxy/VPN/traffic-shaping tools),
+    asyncio.run() hangs indefinitely with no error and no other symptom,
+    before any of this app's own code ever runs. Bounded with a timeout so
+    we fail fast with an actionable message instead of hanging forever.
+    """
+    try:
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(('127.0.0.1', 0))
+        server.listen(1)
+        port = server.getsockname()[1]
+
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.settimeout(timeout)
+        client.connect(('127.0.0.1', port))
+        client.close()
+        server.close()
+        return True
+    except OSError:
+        return False
 
 
 def setup_logging():
@@ -204,22 +208,20 @@ async def run_diagnose():
 
     Must be run via the same built exe that has package identity registered
     (see packaging/README.md) - running `python main.py --diagnose` from a
-    plain python.exe will report the same UNSPECIFIED/hang behavior as
-    tools/diagnose.py, since it has no package identity either.
+    plain python.exe reports UNSPECIFIED for the same reason (no package
+    identity). If it hangs indefinitely instead of reporting any status at
+    all, see check_loopback_connectivity()'s docstring - that's a different,
+    unrelated failure mode.
     """
-    _chk("[10] entered run_diagnose")
     print("=" * 60)
     print("Notification Access Diagnosis")
     print("=" * 60)
     print(f"Running from: {sys.executable if getattr(sys, 'frozen', False) else __file__}")
     print()
 
-    _chk("[11] constructing WindowsNotificationListener")
     listener = WindowsNotificationListener(callback=lambda n: None)
-    _chk("[12] constructed, about to request_access")
     print("Requesting notification access (up to 30s)...")
     granted = await listener.request_access()
-    _chk("[13] request_access returned")
 
     if granted:
         print("✓ ACCESS GRANTED - the app can read Windows notifications.")
@@ -231,10 +233,8 @@ async def run_diagnose():
 
 async def main():
     """Application entry point"""
-    _chk("[8] entered main()")
     # Setup logging
     setup_logging()
-    _chk("[9] setup_logging done")
 
     if "--diagnose" in sys.argv:
         await run_diagnose()
@@ -274,5 +274,26 @@ async def main():
 
 
 if __name__ == "__main__":
+    # Runs before asyncio.run() specifically because that's where the hang
+    # this guards against actually happens - see check_loopback_connectivity's
+    # docstring. A plain synchronous check here can't hit the same failure.
+    if not check_loopback_connectivity():
+        print(
+            "ERROR: Could not establish a local 127.0.0.1 TCP connection "
+            "within a few seconds.\n\n"
+            "This app (and Python's asyncio on Windows generally) needs "
+            "that to work - without it, asyncio.run() hangs indefinitely "
+            "with no error and no other symptom, before any of this app's "
+            "own code runs.\n\n"
+            "The most common cause is a proxy/VPN/traffic-interception "
+            "tool capturing loopback connections (confirmed cause in one "
+            "case: Proxifier's \"Handle Direct Connections\" option). "
+            "Disable that, or add an explicit direct/bypass exception for "
+            "127.0.0.1/localhost, then try again.",
+            file=sys.stderr
+        )
+        input("\nPress Enter to exit...")
+        sys.exit(1)
+
     # Run the async application
     asyncio.run(main())

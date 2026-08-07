@@ -46,4 +46,5 @@ logs/
 *.swo
 .claude/
 .history/
-scratchPad.md
+_Debug/
+scratchPad*.md
