@@ -2,9 +2,17 @@
 Windows Notification Forwarder
 Forwards Windows notifications to multiple channels (FCM, Pushbullet, Ntfy)
 """
+import sys
+
+# Must run before anything can import pythoncom (e.g. a PyInstaller Windows
+# runtime hook, even though this project never imports pywin32 directly):
+# pythoncom defaults to initializing COM as STA on import, and a WinRT async
+# call awaited from an STA thread with no Windows message pump running never
+# completes - it just hangs forever. Forcing MTA (0) here avoids that.
+sys.coinit_flags = 0
+
 import asyncio
 import logging
-import sys
 from pathlib import Path
 
 from config import Config

@@ -3,6 +3,13 @@ Diagnostic script to check notification access
 Run this to see what's wrong
 """
 import sys
+
+# Must run before anything can import pythoncom: it defaults to initializing
+# COM as STA on import, and a WinRT async call awaited from an STA thread
+# with no Windows message pump running never completes - it just hangs.
+# Forcing MTA (0) here avoids that.
+sys.coinit_flags = 0
+
 import asyncio
 from pathlib import Path
 
