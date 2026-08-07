@@ -59,8 +59,15 @@ steps.
     single standalone `.exe`, nothing to install, just put it on your
     `PATH` or reference it by full path:
     ```powershell
-    nuget install Microsoft.Windows.SDK.BuildTools -OutputDirectory packaging\sdk-tools
+    nuget install Microsoft.Windows.SDK.BuildTools -OutputDirectory packaging\sdk-tools -Source https://api.nuget.org/v3/index.json
     ```
+    The standalone `nuget.exe` often has **no package source configured
+    by default**, which shows up as `Unable to find package
+    'Microsoft.Windows.SDK.BuildTools'` even though the package exists -
+    the explicit `-Source` above works around that. If it still fails,
+    use Option A instead; it doesn't depend on `nuget.exe`'s source
+    config at all.
+
     (If you have the .NET SDK / Visual Studio installed, `dotnet` also
     works but only from inside a project via `dotnet add package` - the
     direct download in Option A or `nuget.exe` in Option B are simpler
@@ -130,6 +137,7 @@ powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1 -Unregister
 | `0x80073CF9` | This exact package version is already registered | Re-run `register_app.ps1` - it removes the previous registration first, but if it was registered some other way, run `Get-AppxPackage WinNotiForwarder \| Remove-AppxPackage` manually first |
 | Access still `UNSPECIFIED`/hangs after registering | `app.manifest`'s `publisher`/`packageName`/`applicationId` don't match `AppxManifest.xml`'s `Identity`/`Application` values, or you ran the exe from somewhere other than the registered `-DistPath` | Re-check the two manifests match exactly; confirm you're running the exe from the exact registered folder |
 | `makeappx.exe` / `signtool.exe` not found | Signing tools not present anywhere `register_app.ps1` looks | Use any of the three options in [Prerequisites](#prerequisites) - the direct-download option (A) has no extra tooling requirements and is fastest |
+| `nuget install ...` fails with `Unable to find package 'Microsoft.Windows.SDK.BuildTools'` | Standalone `nuget.exe` has no package source configured by default | Add `-Source https://api.nuget.org/v3/index.json` to the `nuget install` command (see Option B), or just use Option A instead |
 
 If you get this working end-to-end and find something in this doc or
 the scripts that needed a tweak, a PR is very welcome.
