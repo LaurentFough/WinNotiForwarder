@@ -22,12 +22,16 @@ to the Store. Sideloading an app that declares one (which is what this
 does) does not require approval.
 
 This is genuinely fiddly Windows plumbing (SDK signing tools, cert trust
-stores, exact manifest field matching) and has not been validated against
-a real Windows 11 install as part of writing it - if a step here doesn't
-match what you see on your machine, the [Troubleshooting](#troubleshooting)
-table below and the Windows **Event Viewer** (Applications and Services
-Logs > Microsoft > Windows > AppxDeployment-Server) are the best next
-steps.
+stores, exact manifest field matching). It's been validated end-to-end on
+a real Windows 11 machine - `register_app.ps1` runs clean and
+`WinNotiForwarder.exe --diagnose` reaches a real consent prompt and
+reports `ACCESS GRANTED` - but if a step here doesn't match what you see
+on yours, the [Troubleshooting](#troubleshooting) table below and the
+Windows **Event Viewer** (Applications and Services Logs > Microsoft >
+Windows > AppxDeployment-Server, for *registration/deployment* errors -
+not to be confused with the app's own runtime log entries, which land
+under **Windows Logs > Application**, source "WinNotiForwarder") are the
+best next steps.
 
 ## Prerequisites
 

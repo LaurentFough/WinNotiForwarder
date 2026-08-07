@@ -183,6 +183,8 @@ WHITELIST_APPS=Outlook,Teams,Slack
 
 To run automatically when Windows starts, use **NSSM** (Non-Sucking Service Manager):
 
+**Important:** point NSSM at the **packaged exe** (`WinNotiForwarder.exe`, built and registered per [packaging/README.md](packaging/README.md)), not `python.exe main.py` directly. A plain `python.exe` process can never get past `UNSPECIFIED` notification access (see [Grant Notification Access](#3-grant-notification-access)) — a service installed that way would run, but never actually receive any notifications.
+
 ### 1. Download NSSM
 
 Download from: https://nssm.cc/download
@@ -192,12 +194,12 @@ Download from: https://nssm.cc/download
 Open **Command Prompt as Administrator** and run:
 
 ```bash
-nssm install WinNotiForwarder "C:\Path\To\Python\python.exe" "C:\Path\To\WinNotiForwarder\main.py"
-nssm set WinNotiForwarder AppDirectory "C:\Path\To\WinNotiForwarder"
+nssm install WinNotiForwarder "C:\Path\To\dist\WinNotiForwarder.exe"
+nssm set WinNotiForwarder AppDirectory "C:\Path\To\dist"
 nssm start WinNotiForwarder
 ```
 
-Replace the paths with your actual Python and project paths.
+Replace the path with wherever you registered the identity against (the `-DistPath` you passed to `register_app.ps1`, `dist/` by default) — it must be the exact same folder, since the package identity is tied to that path.
 
 ### 3. Manage the Service
 
@@ -231,6 +233,8 @@ This will verify:
 - Notification access granted
 - Connection to notification listener
 
+This runs as plain `python.exe`, so access will report `UNSPECIFIED` even when everything else is fine (see [Grant Notification Access](#3-grant-notification-access)) — once you've built and registered the packaged exe, use `WinNotiForwarder.exe --diagnose` instead for a real access check.
+
 ### Test Notification
 
 Use the included PowerShell script to create a test notification:
@@ -249,7 +253,7 @@ powershell -ExecutionPolicy Bypass -File tools/test_notification.ps1
 1. Settings → Privacy & Security → Notifications
 2. Turn OFF **"Focus Assist"** / **"Do Not Disturb"**
 3. Ensure **"Get notifications from apps and other senders"** is ON
-4. Grant notification access to **Python** / **python.exe**
+4. Grant notification access — see [Grant Notification Access](#3-grant-notification-access) above. If you're running the packaged exe, this is granted via a real consent prompt on first `--diagnose`/run, not a Settings toggle for "python.exe"
 
 **Check Action Center:**
 - Press **Win+N** to open Action Center
