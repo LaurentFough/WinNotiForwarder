@@ -41,14 +41,29 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# $PSScriptRoot can be empty here under Windows PowerShell 5.1 when the
-# script is invoked with a forward-slash path (e.g. -File packaging/register_app.ps1),
-# and it can't be relied on inside a param() default anyway since those are
-# evaluated before the script body runs. Resolve it defensively instead.
-$ScriptRoot = $PSScriptRoot
-if (-not $ScriptRoot) { $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path }
-if (-not $ScriptRoot) { $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition }
-if (-not $ScriptRoot) { throw "Could not determine this script's directory. Run it as: powershell -ExecutionPolicy Bypass -File <full path to>\register_app.ps1" }
+# $PSScriptRoot / $MyInvocation.MyCommand.Path are unreliable here: Windows
+# PowerShell 5.1 has a known bug where both come back empty for scripts run
+# from a UNC path (including mapped network/VM shared-folder drives, e.g. a
+# Z: drive that's actually \\host.lan\... under the hood). Rather than trust
+# invocation metadata, locate this script's directory by checking the
+# filesystem directly, relative to the current directory - which matches
+# the documented usage (run from the repo root).
+function Resolve-PackagingDir {
+    $candidates = @()
+    if ($PSScriptRoot) { $candidates += $PSScriptRoot }
+    if ($MyInvocation.MyCommand.Path) { $candidates += (Split-Path -Parent $MyInvocation.MyCommand.Path) }
+    $candidates += (Join-Path $PWD.Path "packaging")  # invoked from repo root (documented usage)
+    $candidates += $PWD.Path                          # invoked from inside packaging/ already
+
+    foreach ($c in $candidates) {
+        if ($c -and (Test-Path (Join-Path $c "AppxManifest.xml"))) {
+            return (Resolve-Path $c).Path
+        }
+    }
+    throw "Could not locate packaging/AppxManifest.xml. Run this script from the repository root: powershell -ExecutionPolicy Bypass -File packaging/register_app.ps1`nIf you're on a UNC/mapped network path (e.g. a VM shared folder), that's likely why - see packaging/README.md."
+}
+
+$ScriptRoot = Resolve-PackagingDir
 
 if (-not $DistPath) { $DistPath = Join-Path $ScriptRoot "..\dist" }
 
